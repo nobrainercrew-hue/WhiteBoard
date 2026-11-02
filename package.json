@@ -1,0 +1,9 @@
+{
+  "name": "whiteboard-live",
+  "version": "1.0.0",
+  "description": "터치·S펜·마우스로 여러 사람이 함께 그리는 실시간 화이트보드",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "8.18.0" }
+}
