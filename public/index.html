@@ -100,7 +100,7 @@ canvas{position:fixed;inset:0;display:block;touch-action:none;-webkit-touch-call
 
 <div id="hint">
   <strong>펜, 손가락, 마우스로 그려보세요</strong>
-  <span>두 손가락으로 이동·확대 · Ctrl+휠로 확대 · 스페이스+드래그로 이동 · S펜 버튼을 누른 채 그리면 지우개 · Ctrl+Z로 내 직전 획 취소 · 오른쪽 위 사람 버튼으로 링크를 복사해 보내면 함께 그릴 수 있어요</span>
+  <span>두 손가락으로 이동·확대 · Ctrl+휠로 확대 · 스페이스+드래그로 이동 · S펜 버튼을 누른 채 그리면 지우개 · Ctrl+Z로 내 직전 획 취소 · 지우개는 내가 그린 획만 지워요 · 오른쪽 위 사람 버튼으로 링크를 복사해 보내면 함께 그릴 수 있어요</span>
 </div>
 
 <div class="bar tl" role="toolbar" aria-label="확대">
@@ -159,7 +159,9 @@ const NAMES={pen:'펜',hl:'형광펜',er:'지우개',hand:'이동'};
 let dpr=1,W=0,H=0;
 const view={x:0,y:0,s:1};
 let strokes=[],nextId=1;
-const CID=Math.random().toString(36).slice(2,10);
+let CID='';try{CID=localStorage.getItem('board-cid')||''}catch(_){}
+if(!/^[a-z0-9]{6,16}$/.test(CID)){CID=Math.random().toString(36).slice(2,10).padEnd(8,'0');try{localStorage.setItem('board-cid',CID)}catch(_){}}
+const mine=s=>s.id.startsWith(CID+'.');
 const remoteLive=new Map();
 const undo=[],redo=[];
 const st={tool:'pen',pen:{color:'#1f2430',size:4},hl:{color:'#ffd400',size:22},er:{size:24},grid:true,penOnly:false,penSeen:false};
@@ -275,7 +277,7 @@ function eraseTo(sx,sy){const w=toWorld(sx,sy),r=st.er.size/2/view.s,l=act.last,
   for(let k=1;k<=n;k++)hitTest(l[0]+(w[0]-l[0])*k/n,l[1]+(w[1]-l[1])*k/n);act.last=w}
 function segDist(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=clamp(t,0,1);return Math.hypot(px-ax-t*dx,py-ay-t*dy)}
 function hitTest(x,y){const r=st.er.size/2/view.s;let hit=false;
-  for(let i=strokes.length-1;i>=0;i--){const s=strokes[i],b=s.b;if(x<b[0]-r||x>b[2]+r||y<b[1]-r||y>b[3]+r)continue;
+  for(let i=strokes.length-1;i>=0;i--){const s=strokes[i],b=s.b;if(!mine(s))continue;if(x<b[0]-r||x>b[2]+r||y<b[1]-r||y>b[3]+r)continue;
     const p=s.pts,n=p.length/3;let on=false;
     for(let j=0;j<n&&!on;j++){const half=s.tool==='hl'?s.size/2:s.size*p[j*3+2]/2;
       const dd=j===0?Math.hypot(x-p[0],y-p[1]):segDist(x,y,p[j*3-3],p[j*3-2],p[j*3],p[j*3+1]);if(dd<=r+half)on=true}
