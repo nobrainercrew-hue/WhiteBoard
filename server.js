@@ -89,8 +89,9 @@ const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 2 * 1024 * 10
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://x');
   const roomId = (url.searchParams.get('room') || '').toLowerCase();
-  const cid = (url.searchParams.get('cid') || '').slice(0, 16);
-  if (!ROOM_RE.test(roomId)) return ws.close(1008, 'bad room');
+  const cid = url.searchParams.get('cid') || '';
+  if (!ROOM_RE.test(roomId) || !/^[a-z0-9]{6,16}$/.test(cid)) return ws.close(1008, 'bad request');
+  const own = id => typeof id === 'string' && id.startsWith(cid + '.');
 
   const r = getRoom(roomId);
   r.clients.add(ws);
@@ -108,7 +109,8 @@ wss.on('connection', (ws, req) => {
     if (m.t === 'add' && Array.isArray(m.s)) {
       const out = [];
       for (const s of m.s) {
-        if (!validStroke(s) || r.strokes.size >= MAX_STROKES) continue;
+        // 자기 획만 추가할 수 있습니다(남의 획 id로 덮어쓰기 방지)
+        if (!validStroke(s) || !own(s.id) || r.strokes.size >= MAX_STROKES) continue;
         // 실행 취소로 되살린 획은 원래 순서를 유지하고, 새 획은 맨 위에 쌓습니다
         const z = (typeof s.z === 'number' && s.z > 0 && s.z <= r.seq) ? s.z : ++r.seq;
         const clean = { id: s.id, z, tool: s.tool, color: s.color, size: s.size, pts: s.pts };
@@ -119,7 +121,8 @@ wss.on('connection', (ws, req) => {
       return;
     }
     if (m.t === 'rm' && Array.isArray(m.ids)) {
-      const ids = m.ids.filter(id => typeof id === 'string' && r.strokes.delete(id));
+      // 자기 획만 지울 수 있습니다
+      const ids = m.ids.filter(id => own(id) && r.strokes.delete(id));
       if (ids.length) { broadcast(r, { t: 'rm', ids }, ws); saveSoon(roomId, r); }
       return;
     }
