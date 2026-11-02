@@ -8,7 +8,14 @@ const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const INDEX = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+// index.html은 public 폴더 안이나 저장소 맨 위, 어느 쪽에 있어도 찾습니다
+const INDEX_PATH = [path.join(__dirname, 'public', 'index.html'), path.join(__dirname, 'index.html')]
+  .find(p => fs.existsSync(p));
+if (!INDEX_PATH) {
+  console.error('index.html을 찾지 못했어요. public/index.html 또는 맨 위에 index.html을 올려 주세요.');
+  process.exit(1);
+}
+const INDEX = fs.readFileSync(INDEX_PATH);
 
 const MAX_STROKES = 50000;      // 보드 하나에 담을 수 있는 최대 획 수
 const MAX_PTS = 90000;          // 획 하나의 최대 좌표 수(x,y,압력 = 3개씩)
